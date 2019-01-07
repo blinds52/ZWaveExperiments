@@ -77,7 +77,7 @@ namespace ZwaveExperiments
     class ZWaveReader
     {
         ArrayPool<byte> bytesPool = ArrayPool<byte>.Create();
-        static byte[] ackBuffer = new byte[1] {(byte) FrameHeader.Ack};
+        static byte[] ackBuffer = new byte[1] {(byte) FrameHeader.ACK};
 
         Stream stream;
         ArraySegment<byte>? remainingBytes;
@@ -118,7 +118,7 @@ namespace ZwaveExperiments
             }
 
             var frameHeader = (FrameHeader) span[0];
-            if (frameHeader != FrameHeader.Data)
+            if (frameHeader != FrameHeader.SOF)
             {
                 frame = span.Slice(0, 1);
                 return true;
@@ -192,7 +192,7 @@ namespace ZwaveExperiments
                     }
 
                     var frameHeader = (FrameHeader) frame[0];
-                    if (frameHeader == FrameHeader.Data)
+                    if (frameHeader == FrameHeader.SOF)
                     {
                         await stream.WriteAsync(ackBuffer, 0, ackBuffer.Length);
                     }

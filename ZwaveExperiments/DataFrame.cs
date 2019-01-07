@@ -1,14 +1,31 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ZwaveExperiments
 {
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     enum FrameHeader : byte
     {
-        Data = 0x01,
-        Ack = 0x06,
-        Nak = 0x15,
-        ResendRequest = 0x18
+        /// <summary>
+        /// Start of frame, signal a data frame.
+        /// </summary>
+        SOF = 0x01,
+        
+        /// <summary>
+        /// Previous message acknowledgment
+        /// </summary>
+        ACK = 0x06,
+        
+        /// <summary>
+        /// Previous message was an error
+        /// </summary>
+        NAK = 0x15,
+        
+        /// <summary>
+        /// Retransmission request
+        /// </summary>
+        CAN = 0x18
     }
 
     enum FrameType : byte
@@ -25,7 +42,7 @@ namespace ZwaveExperiments
 
     ref struct DataFrame
     {
-        const byte HEADER = (byte) FrameHeader.Data;
+        const byte HEADER = (byte) FrameHeader.SOF;
 
         public FrameType Type
         {
@@ -64,7 +81,7 @@ namespace ZwaveExperiments
 
             var dataSize = parametersSize + 5;
             Data = new Span<byte>(new byte[dataSize]);
-            Data[0] = 1;
+            Data[0] = (byte)FrameHeader.SOF;
             InfoSize = (byte) (parametersSize + 3);
             Type = type;
             Command = command;
