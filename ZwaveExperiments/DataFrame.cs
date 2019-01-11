@@ -100,7 +100,7 @@ namespace ZwaveExperiments
         public byte ComputeCheckSum()
         {
             var checksumable = Data.Slice(1, Data.Length - 2);
-            return ZWaveCheckSum.Compute(checksumable);
+            return SerialCheckSum.Compute(checksumable);
         }
 
         public void UpdateCheckSum()

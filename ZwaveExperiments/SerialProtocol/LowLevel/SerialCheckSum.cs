@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace ZwaveExperiments
+namespace ZwaveExperiments.SerialProtocol.LowLevel
 {
-    static class ZWaveCheckSum
+    static class SerialCheckSum
     {
         public static byte Compute(ReadOnlySpan<byte> data)
         {
