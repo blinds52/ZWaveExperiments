@@ -1,4 +1,4 @@
-﻿namespace ZwaveExperiments.SerialProtocol.LowLevel
+﻿namespace ZwaveExperiments.SerialProtocol.Framing
 {
     enum SerialMessageType : byte
     {

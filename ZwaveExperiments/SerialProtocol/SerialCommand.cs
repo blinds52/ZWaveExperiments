@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ZwaveExperiments.SerialProtocol
+﻿namespace ZwaveExperiments.SerialProtocol
 {
-    interface ISerialProtocol
-    {
-
-    }
-
     // From rust crate
-    enum SerialCommand {
+    enum SerialCommand
+    {
         None = 0x00,
         DiscoveryNodes = 0x02,
         SerialApiApplNodeInformation = 0x03,

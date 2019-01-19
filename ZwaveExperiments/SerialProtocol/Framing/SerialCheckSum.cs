@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZwaveExperiments.SerialProtocol.LowLevel
+namespace ZwaveExperiments.SerialProtocol.Framing
 {
     static class SerialCheckSum
     {

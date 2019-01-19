@@ -5,12 +5,12 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZwaveExperiments.SerialProtocol.LowLevel
+namespace ZwaveExperiments.SerialProtocol.Framing
 {
     class FrameStream
     {
         readonly ArrayPool<byte> bytesPool = ArrayPool<byte>.Create();
-        static readonly byte[] AckBuffer = { (byte)FrameHeader.ACK };
+        static readonly byte[] AckBuffer = { (byte)SerialFrameHeader.ACK };
 
         readonly Stream stream;
 
@@ -39,8 +39,8 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             // No data, not allocation is involved
             if (frameSpan.Length == 1)
             {
-                Debug.Assert((FrameHeader) frameSpan[0] != FrameHeader.SOF);
-                return new SerialFrame((FrameHeader) frameSpan[0]);
+                Debug.Assert((SerialFrameHeader) frameSpan[0] != SerialFrameHeader.SOF);
+                return new SerialFrame((SerialFrameHeader) frameSpan[0]);
             }
 
             // Allocate and transmit
@@ -57,8 +57,8 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
                 return false;
             }
 
-            var frameHeader = (FrameHeader)span[0];
-            if (frameHeader != FrameHeader.SOF)
+            var frameHeader = (SerialFrameHeader)span[0];
+            if (frameHeader != SerialFrameHeader.SOF)
             {
                 frame = span.Slice(0, 1);
                 return true;
@@ -141,7 +141,7 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
                         remainingBytes = new ArraySegment<byte>(buffer.Array, buffer.Offset + frame.Length, buffer.Count - frame.Length);
                     }
 
-                    if (frame.Header == FrameHeader.SOF)
+                    if (frame.Header == SerialFrameHeader.SOF)
                     {
                         await stream.WriteAsync(AckBuffer, 0, AckBuffer.Length, ct);
                     }

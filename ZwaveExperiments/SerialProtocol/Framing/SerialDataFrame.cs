@@ -1,56 +1,15 @@
 ﻿using System;
-using System.Buffers;
 using System.Diagnostics;
 
-namespace ZwaveExperiments.SerialProtocol.LowLevel
+namespace ZwaveExperiments.SerialProtocol.Framing
 {
-    internal struct SerialFrame
-    {
-        public static SerialFrame Ack = new SerialFrame(FrameHeader.ACK, true);
-        public static SerialFrame Nak = new SerialFrame(FrameHeader.NAK, true);
-
-        public FrameHeader Header { get; }
-        public byte[] Data { get; }
-        public int Length => Data.Length == 0 ? 1 : Data.Length;
-
-        private SerialFrame(FrameHeader header, bool allocate)
-        {
-            Header = header;
-            Data = new byte[] { (byte)header };
-        }
-
-        public SerialFrame(FrameHeader header)
-        {
-            Header = header;
-            Data = new byte[0];
-        }
-
-        public SerialFrame(byte[] data)
-        {
-            Debug.Assert(data[0] == (byte)ZwaveExperiments.FrameHeader.SOF);
-            Header = FrameHeader.SOF;
-            Data = data;
-        }
-
-        public SerialDataFrame AsSerialDataFrame()
-        {
-            if (Header != FrameHeader.SOF || Data == null)
-            {
-                throw new InvalidOperationException("Not a data frame");
-            }
-
-            var result = new SerialDataFrame(Data);
-            return result;
-        }
-    }
-
     struct SerialDataFrame
     {
-        const byte HEADER = (byte)FrameHeader.SOF;
+        const byte HEADER = (byte)SerialFrameHeader.SOF;
 
-        public FrameType Type
+        public SerialMessageType MessageType
         {
-            get => (FrameType) Data[2];
+            get => (SerialMessageType) Data[2];
             private set => Data[2] = (byte) value;
         }
 
@@ -76,7 +35,7 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
 
         public byte[] Data { get; private set; }
 
-        public SerialDataFrame(FrameType type, SerialCommand command, int parametersSize = 0)
+        public SerialDataFrame(SerialMessageType type, SerialCommand command, int parametersSize = 0)
         {
             if (parametersSize > 256)
             {
@@ -85,9 +44,9 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
 
             var dataSize = parametersSize + 5;
             Data = new byte[dataSize];
-            Data[0] = (byte)FrameHeader.SOF;
+            Data[0] = (byte)SerialFrameHeader.SOF;
             InfoSize = (byte) (parametersSize + 3);
-            Type = type;
+            MessageType = type;
             Command = command;
             AssertFrame();
         }

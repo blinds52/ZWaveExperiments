@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ZwaveExperiments.SerialProtocol.LowLevel
+namespace ZwaveExperiments.SerialProtocol.Framing
 {
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    enum FrameHeader : byte
+    enum SerialFrameHeader : byte
     {
         /// <summary>
         /// Start of frame (SOF), signal a data frame.
