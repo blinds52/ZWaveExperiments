@@ -3,9 +3,6 @@ jobs:
   pool:
     vmImage: 'ubuntu-16.04'
   steps:
-  - task: DotNetCoreInstaller@0
-    inputs:
-      version: '2.2.101'
   - script: dotnet build ZwaveExperiments.sln
     displayName: Build
     env:
