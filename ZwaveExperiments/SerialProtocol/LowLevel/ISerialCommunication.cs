@@ -13,9 +13,9 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
 {
     interface ISerialCommunication
     {
-        IObservable<PooledSerialFrame> UnsolicitedMessages { get; }
+        IObservable<SerialFrame> UnsolicitedMessages { get; }
 
-        Task WriteAsync(PooledSerialFrame message, CancellationToken cancellationToken = default);
-        Task<PooledSerialFrame> QueryAsync(PooledSerialFrame query, CancellationToken cancellationToken = default);
+        Task WriteAsync(SerialFrame message, CancellationToken cancellationToken = default);
+        Task<SerialFrame> QueryAsync(SerialFrame query, CancellationToken cancellationToken = default);
     }
 }

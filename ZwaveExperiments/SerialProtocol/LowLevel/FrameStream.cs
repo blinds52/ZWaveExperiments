@@ -29,11 +29,10 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             return new ArraySegment<byte>(segment.Array, segment.Offset, segment.Count + bytesRead);
         }
 
-        PooledSerialFrame? TryReadFrame(ArraySegment<byte> buffer, out bool returnMemory)
+        SerialFrame? TryReadFrame(ArraySegment<byte> buffer)
         {
             if (!TryReadFrameSpan(buffer, out var frameSpan))
             {
-                returnMemory = true;
                 return null;
             }
 
@@ -41,23 +40,13 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             if (frameSpan.Length == 1)
             {
                 Debug.Assert((FrameHeader) frameSpan[0] != FrameHeader.SOF);
-                returnMemory = true;
-                return new PooledSerialFrame((FrameHeader) frameSpan[0]);
+                return new SerialFrame((FrameHeader) frameSpan[0]);
             }
 
-            // The full buffer is a data frame, we can reuse it
-            if (buffer.Offset == 0 && frameSpan.Length == buffer.Count)
-            {
-                returnMemory = false;
-                return new PooledSerialFrame(bytesPool, buffer);
-            }
-
-            // Only part of the buffer is a data frame, we need to allocate from the pool to transmit it
-            Debug.Assert((FrameHeader) frameSpan[0] == FrameHeader.SOF);
-            var array = bytesPool.Rent(frameSpan.Length);
+            // Allocate and transmit
+            var array = new byte[frameSpan.Length];
             frameSpan.CopyTo(array);
-            returnMemory = true;
-            return new PooledSerialFrame(bytesPool, new ArraySegment<byte>(array, 0, frameSpan.Length));
+            return new SerialFrame(array);
         }
 
         bool TryReadFrameSpan(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> frame)
@@ -92,11 +81,11 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             return true;
         }
 
-        public async Task WriteAsync(PooledSerialFrame frame, CancellationToken ct = default)
+        public async Task WriteAsync(SerialFrame frame, CancellationToken ct = default)
         {
             ArraySegment<byte> buffer;
             var rented = false;
-            if (frame.Data.Count == 0)
+            if (frame.Data.Length == 0)
             {
                 var bufferArray = bytesPool.Rent(1);
                 rented = true;
@@ -121,7 +110,7 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             }
         }
 
-        public async Task<PooledSerialFrame> ReadAsync(CancellationToken ct = default)
+        public async Task<SerialFrame> ReadAsync(CancellationToken ct = default)
         {
             ArraySegment<byte> buffer;
             if (remainingBytes != null)
@@ -137,12 +126,12 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             while (true)
             {
                 buffer = await Read(buffer, ct);
-                var maybeFrame = TryReadFrame(buffer, out var returnMemory);
+                var maybeFrame = TryReadFrame(buffer);
 
                 if (maybeFrame != null)
                 {
                     var frame = maybeFrame.Value;
-                    if (returnMemory && frame.Length == buffer.Count)
+                    if (frame.Length == buffer.Count)
                     {
                         remainingBytes = null;
                         bytesPool.Return(buffer.Array);

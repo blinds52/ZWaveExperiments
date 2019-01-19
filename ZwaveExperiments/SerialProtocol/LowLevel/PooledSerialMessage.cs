@@ -4,45 +4,47 @@ using System.Diagnostics;
 
 namespace ZwaveExperiments.SerialProtocol.LowLevel
 {
-    struct PooledSerialFrame : IDisposable
+    internal struct SerialFrame
     {
-        public static PooledSerialFrame Ack = new PooledSerialFrame(FrameHeader.ACK, true);
-        public static PooledSerialFrame Nak = new PooledSerialFrame(FrameHeader.NAK, true);
+        public static SerialFrame Ack = new SerialFrame(FrameHeader.ACK, true);
+        public static SerialFrame Nak = new SerialFrame(FrameHeader.NAK, true);
 
         public FrameHeader Header { get; }
-        public ArrayPool<byte> Pool { get; }
-        public ArraySegment<byte> Data { get; }
-        public int Length => Data.Count == 0 ? 1 : Data.Count;
+        public byte[] Data { get; }
+        public int Length => Data.Length == 0 ? 1 : Data.Length;
 
-        private PooledSerialFrame(FrameHeader header, bool allocate)
+        private SerialFrame(FrameHeader header, bool allocate)
         {
             Header = header;
-            Pool = null;
             Data = new byte[] { (byte)header };
         }
 
-        public PooledSerialFrame(FrameHeader header)
+        public SerialFrame(FrameHeader header)
         {
             Header = header;
-            Pool = null;
-            Data = ArraySegment<byte>.Empty;
+            Data = new byte[0];
         }
 
-        public PooledSerialFrame(ArrayPool<byte> pool, ArraySegment<byte> data)
+        public SerialFrame(byte[] data)
         {
             Debug.Assert(data[0] == (byte)ZwaveExperiments.FrameHeader.SOF);
             Header = FrameHeader.SOF;
-            Pool = pool;
             Data = data;
         }
 
-        public void Dispose()
+        public SerialDataFrame AsSerialDataFrame()
         {
-            Pool?.Return(Data.Array);
+            if (Header != FrameHeader.SOF || Data == null)
+            {
+                throw new InvalidOperationException("Not a data frame");
+            }
+
+            var result = new SerialDataFrame(Data);
+            return result;
         }
     }
 
-    ref struct DataFrame
+    struct SerialDataFrame
     {
         const byte HEADER = (byte)FrameHeader.SOF;
 
@@ -52,13 +54,13 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             private set => Data[2] = (byte) value;
         }
 
-        public Command Command
+        public SerialCommand Command
         {
-            get => (Command) Data[3];
+            get => (SerialCommand) Data[3];
             private set => Data[3] = (byte) value;
         }
 
-        public Span<byte> Parameters => Data.Slice(2, Data.Length - 3);
+        public Span<byte> Parameters => Data.AsSpan().Slice(2, Data.Length - 3);
 
         public byte CheckSum
         {
@@ -72,9 +74,9 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             private set => Data[1] = value;
         }
 
-        public Span<byte> Data { get; private set; }
+        public byte[] Data { get; private set; }
 
-        public DataFrame(FrameType type, Command command, int parametersSize = 0)
+        public SerialDataFrame(FrameType type, SerialCommand command, int parametersSize = 0)
         {
             if (parametersSize > 256)
             {
@@ -82,17 +84,22 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
             }
 
             var dataSize = parametersSize + 5;
-            Data = new Span<byte>(new byte[dataSize]);
+            Data = new byte[dataSize];
             Data[0] = (byte)FrameHeader.SOF;
             InfoSize = (byte) (parametersSize + 3);
             Type = type;
             Command = command;
+            AssertFrame();
         }
 
-        public DataFrame(Span<byte> bytes)
+        public SerialDataFrame(byte[] bytes)
         {
             Data = bytes;
-            AssertFrame();
+        }
+
+        public SerialFrame AsSerialFrame()
+        {
+            return new SerialFrame(Data);
         }
 
         [Conditional("DEBUG")]
@@ -106,7 +113,7 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
 
         public byte ComputeCheckSum()
         {
-            var checksumable = Data.Slice(1, Data.Length - 2);
+            var checksumable = Data.AsSpan().Slice(1, Data.Length - 2);
             return SerialCheckSum.Compute(checksumable);
         }
 
@@ -122,11 +129,6 @@ namespace ZwaveExperiments.SerialProtocol.LowLevel
         public void UpdateCheckSum()
         {
             CheckSum = ComputeCheckSum();
-        }
-
-        public static bool IsFrameChecksumValid(Memory<byte> memory)
-        {
-            return new DataFrame(memory.Span).IsCheckSumValid;
         }
     }
 }
